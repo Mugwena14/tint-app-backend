@@ -3,10 +3,22 @@ import multer from "multer";
 import dotenv from "dotenv";
 import cors from "cors";
 import Brevo from "@getbrevo/brevo";
+import mongoose from "mongoose";
+import Review from "./models/Review.js";
 
 dotenv.config();
 
 const app = express();
+
+// --------------------------------
+// MongoDB Connection
+// --------------------------------
+mongoose
+  .connect(process.env.MONGO_URI, {
+    dbName: "tint_reviews",
+  })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.log("❌ MongoDB Error:", err.message));
 
 // --------------------------------
 // CORS Configuration
@@ -31,11 +43,34 @@ brevoClient.setApiKey(
   process.env.BREVO_API_KEY
 );
 
+// ----------------------------------------------------
+// REVIEWS API (GET + POST)
+// ----------------------------------------------------
+app.get("/api/reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/reviews", async (req, res) => {
+  try {
+    const review = await Review.create(req.body);
+    res.json(review);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ----------------------------------------------------
+// BOOKING ROUTE (unchanged)
+// ----------------------------------------------------
 app.post("/api/book", upload.array("images", 3), async (req, res) => {
   try {
     const { name, email, location, service, message, preferredDate, preferredTime } = req.body;
 
-    // Convert uploaded files → base64 attachments
     const attachments = req.files?.length
       ? req.files.map((file) => ({
           name: file.originalname,
@@ -62,7 +97,6 @@ app.post("/api/book", upload.array("images", 3), async (req, res) => {
       `,
     };
 
-    // Attach files ONLY if exist
     if (attachments) adminEmail.attachment = attachments;
 
     await brevoClient.sendTransacEmail(adminEmail);
@@ -71,7 +105,7 @@ app.post("/api/book", upload.array("images", 3), async (req, res) => {
      * 2️⃣ SEND CONFIRMATION TO CLIENT
      * -------------------------- */
     await brevoClient.sendTransacEmail({
-      sender: { email: process.env.ADMIN_EMAIL, name: "Tinting Team" },
+      sender: { email: process.env.ADMIN_EMAIL, name: "Tintish Tinting Team" },
       to: [{ email }],
       subject: "We've Received Your Booking Request",
       htmlContent: `
@@ -91,4 +125,5 @@ app.post("/api/book", upload.array("images", 3), async (req, res) => {
   }
 });
 
+// ----------------------------------------------------
 app.listen(5000, () => console.log("Server running on port 5000"));
