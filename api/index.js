@@ -15,7 +15,7 @@ const app = express();
 // MongoDB — only connect once
 if (!mongoose.connection.readyState) {
   mongoose
-    .connect(process.env.MONGO_URI, { dbName: "tint_reviews" })
+    .connect(process.env.MONGODB_URI, { dbName: "tint_reviews" })
     .then(() => console.log("MongoDB Connected"))
     .catch((err) => console.log("MongoDB Error:", err.message));
 }
