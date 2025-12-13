@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 // Connect to Mongo DB
 connectDB();
 
-// Middleware
+// middleware
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "*",
