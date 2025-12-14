@@ -32,7 +32,7 @@ app.use("/api/book", upload.array("images", 3), bookingRoutes);
 
 // Root route
 app.get("/", (req, res) => {
-  res.send("Backend is running ✅");
+  res.send("Backend is running");
 });
 
 // Start server
