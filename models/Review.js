@@ -8,7 +8,7 @@ const ReviewSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      required: true, 
+      required: false, 
     },
     rating: {
       type: Number,
