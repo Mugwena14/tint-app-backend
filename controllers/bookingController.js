@@ -2,7 +2,7 @@ import brevoClient from "../config/brevo.js";
 
 export const handleBooking = async (req, res) => {
   try {
-    const { name, email, phone, location, service, message, preferredDate, preferredTime } = req.body;
+    const { name, phone, location, service, message, preferredDate, preferredTime } = req.body;
 
     // Format phone for WhatsApp (SA support)
     const formattedPhone = phone
