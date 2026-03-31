@@ -2,7 +2,12 @@ import brevoClient from "../config/brevo.js";
 
 export const handleBooking = async (req, res) => {
   try {
-    const { name, email, location, service, message, preferredDate, preferredTime } = req.body;
+    const { name, email, phone, location, service, message, preferredDate, preferredTime } = req.body;
+
+    // Format phone for WhatsApp (SA support)
+    const formattedPhone = phone
+      ? phone.replace(/^0/, "27").replace("+", "")
+      : null;
 
     const attachments = req.files?.length
       ? req.files.map((file) => ({
@@ -20,19 +25,45 @@ export const handleBooking = async (req, res) => {
       subject: `New Booking Request — ${name}`,
       htmlContent: `
         <div style="font-family: Arial, sans-serif; line-height:1.6; max-width:600px; background: linear-gradient(135deg, #e0f0ff 0%, #ffffff 100%); padding:20px; border-radius:10px; color:#1a1a1a;">
+          
           <h2 style="color:#0390fc; margin-bottom:10px;">New Tinting Booking</h2>
+
           <p><strong>Name:</strong> ${name}</p>
           <p><strong>Email:</strong> ${email}</p>
+          ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
           <p><strong>Location:</strong> ${location}</p>
           <p><strong>Service:</strong> ${service}</p>
           <p><strong>Date:</strong> ${preferredDate || "Not specified"}</p>
           <p><strong>Time:</strong> ${preferredTime || "Not specified"}</p>
+
           ${message ? `<p><strong>Message:</strong><br>${message}</p>` : ""}
+
           <br>
+
+          <!-- Email Button -->
           <a href="mailto:${email}" 
-             style="display:inline-block; padding:12px 25px; background-color:#0390fc; color:#fff; text-decoration:none; border-radius:5px; font-weight:bold;">
-             Reply to Client
+             style="display:inline-block; padding:12px 20px; background-color:#0390fc; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; margin-right:10px;">
+             Reply via Email
           </a>
+
+          ${
+            phone
+              ? `
+          <!-- WhatsApp Button -->
+          <a href="https://wa.me/${formattedPhone}?text=Hi%20${name},%20regarding%20your%20${service}%20booking..."
+             style="display:inline-block; padding:12px 20px; background-color:#25D366; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; margin-right:10px;">
+             WhatsApp
+          </a>
+
+          <!-- Call Button -->
+          <a href="tel:${phone}" 
+             style="display:inline-block; padding:12px 20px; background-color:#000; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold;">
+             Call
+          </a>
+          `
+              : ""
+          }
+
         </div>
       `,
     };
@@ -41,7 +72,7 @@ export const handleBooking = async (req, res) => {
     await brevoClient.sendTransacEmail(adminEmail);
 
     // -------------------
-    // Client Confirmation Email
+    // Client Confirmation Email (UNCHANGED)
     // -------------------
     await brevoClient.sendTransacEmail({
       sender: { email: process.env.ADMIN_EMAIL, name: "Tintish Tinting Team" },
@@ -80,6 +111,7 @@ export const handleBooking = async (req, res) => {
     });
 
     res.json({ success: true, message: "Booking successfully sent via Brevo." });
+
   } catch (error) {
     console.error("Brevo Error:", error.response?.data || error);
     res.status(500).json({ success: false, error: "Failed to send booking via Brevo." });
