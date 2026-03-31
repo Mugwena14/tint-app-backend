@@ -2,15 +2,14 @@ import brevoClient from "../config/brevo.js";
 
 export const handleBooking = async (req, res) => {
   try {
-    // 1. Get data from req.body (Ensure you have multer in your route!)
+    // 1. Destructure only what you are actually sending from the frontend
     const { name, phone, location, service, message, preferredDate, preferredTime } = req.body;
 
-    // 2. Format phone for WhatsApp (South Africa)
+    // 2. Format phone for WhatsApp (SA support)
     const formattedPhone = phone
       ? phone.replace(/^0/, "27").replace(/\s+/g, "").replace("+", "")
       : null;
 
-    // 3. Handle Attachments (from multer)
     const attachments = req.files?.length
       ? req.files.map((file) => ({
           name: file.originalname,
@@ -18,15 +17,13 @@ export const handleBooking = async (req, res) => {
         }))
       : null;
 
-    // -------------------
-    // Admin Email (Sent to YOU)
-    // -------------------
+    // 3. Admin Email (This sends the notification to YOU)
     const adminEmail = {
       sender: { email: process.env.ADMIN_EMAIL, name: "Booking System" },
       to: [{ email: process.env.ADMIN_EMAIL }],
       subject: `New Booking Request — ${name}`,
       htmlContent: `
-        <div style="font-family: Arial, sans-serif; line-height:1.6; max-width:600px; background: #f9f9f9; padding:20px; border-radius:10px; color:#1a1a1a;">
+        <div style="font-family: Arial, sans-serif; line-height:1.6; max-width:600px; background: #ffffff; padding:20px; border-radius:10px; color:#1a1a1a; border: 1px solid #eee;">
           <h2 style="color:#0390fc;">New Tinting Booking</h2>
           <p><strong>Name:</strong> ${name}</p>
           <p><strong>Phone:</strong> ${phone}</p>
@@ -34,24 +31,28 @@ export const handleBooking = async (req, res) => {
           <p><strong>Service:</strong> ${service}</p>
           <p><strong>Date:</strong> ${preferredDate || "Not specified"}</p>
           <p><strong>Time:</strong> ${preferredTime || "Not specified"}</p>
-          ${message ? `<p><strong>Message:</strong><br>${message}</p>` : ""}
+          <p><strong>Message:</strong> ${message || "No message"}</p>
           <br>
-          ${formattedPhone ? `
-          <a href="https://wa.me/${formattedPhone}" style="display:inline-block; padding:10px 15px; background-color:#25D366; color:#fff; text-decoration:none; border-radius:6px;">WhatsApp Client</a>
-          <a href="tel:${phone}" style="display:inline-block; padding:10px 15px; background-color:#000; color:#fff; text-decoration:none; border-radius:6px;">Call Client</a>
-          ` : ""}
+          <hr />
+          <div style="margin-top: 20px;">
+            <a href="https://wa.me/${formattedPhone}" style="background-color:#25D366; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">WhatsApp Client</a>
+            <a href="tel:${phone}" style="background-color:#000; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold; margin-left:10px;">Call</a>
+          </div>
         </div>
       `,
     };
 
     if (attachments) adminEmail.attachment = attachments;
-    
+
+    // Send the email to yourself
     await brevoClient.sendTransacEmail(adminEmail);
 
-    res.json({ success: true, message: "Booking received!" });
+    // 4. Send Success response
+    res.json({ success: true, message: "Booking successfully received." });
 
   } catch (error) {
-    console.error("Brevo Error:", error.response?.data || error);
-    res.status(500).json({ success: false, error: "Failed to process booking." });
+    // This logs the actual error to your Render logs so you can see it
+    console.error("Brevo/Server Error:", error.response?.data || error.message);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
